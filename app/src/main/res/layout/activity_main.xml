@@ -10,21 +10,32 @@
     android:orientation="vertical">
 
 
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="to user_name"
+        android:id="@+id/toUsername"/>
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/button" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New Text"
-        android:id="@+id/textView" />
+        android:text="sendYo"
+        android:id="@+id/sendYoButton" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/button2" />
+        android:text="sendAll"
+        android:id="@+id/sendAllButton" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CountTotalFriends"
+        android:id="@+id/countTotalFriendsButton" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ListFriends"
+        android:id="@+id/listFriendsButton" />
 </LinearLayout>

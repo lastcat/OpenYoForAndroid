@@ -7,7 +7,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -35,75 +37,33 @@ public class MainActivity extends Activity {
     private GoogleCloudMessaging gcm;
     private Context context;
     String regId;
+    String url;
+    String api_token;
 
-    @InjectView(R.id.textView)
-    TextView tv;
+    @InjectView(R.id.toUsername)
+    EditText toUsername;
 
-
-
-    @OnClick(R.id.button)
+    @OnClick(R.id.sendYoButton)
     void sendYo(){
-        String url = "http://OpenYo.nna774.net/yo/";
-        String api_token = getString(R.string.yo_api_token);
-        String parameters = "?api_ver=0.1&api_token="+api_token+"&username=nona7";
-        //String createUser = "http://OpenYo.nna774.net/create_user/?api_ver=0.1&username=testcat";
-        String requestUrl = url + parameters;
-        mQueue = Volley.newRequestQueue(this);
-        mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // JSONObjectのパース、List、Viewへの追加等
-                        tv.setText(response);
-                    }
-                },
-
-                new Response.ErrorListener() {
-                    @Override public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                    }
-                }));
-        mQueue.start();
-
-
+        YoUtils.sendYo(url,api_token,toUsername.getText().toString(),mQueue,context);
     }
 
-    @OnClick(R.id.button2)
-    void sendPush(){
-        String url = "https://android.googleapis.com/gcm/send";
-        final String api_key = getString(R.string.api_key);
-
-        JSONObject sendData = new JSONObject();
-        try {
-            sendData.put("registration_ids", regId);
-            sendData.put("dara","hoge");
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        JsonObjectRequest json = new JsonObjectRequest(Request.Method.POST,url,sendData,
-                new Response.Listener<JSONObject>(){
-                    public void onResponse(JSONObject result) {
-                        //返答時コールバック処理
-                    }
-                }, new Response.ErrorListener() {
-            public void onErrorResponse(VolleyError error) {
-            }
-        }){
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> headers = super.getHeaders();
-                // Add BASIC AUTH HEADER
-                Map<String, String> newHeaders = new HashMap<String, String>();
-                newHeaders.putAll(headers);
-                newHeaders.put("Authorization", "key = " + api_key);
-                return newHeaders;
-            };
-        };
-        mQueue = Volley.newRequestQueue(this);
-
-        mQueue.start();
+    @OnClick(R.id.sendAllButton)
+    void sendAll(){
+        YoUtils.sendYoAll(url,api_token,mQueue,context);
     }
+
+    @OnClick(R.id.countTotalFriendsButton)
+    void countTotalFriends(){
+            YoUtils.countTotalFriends(url,api_token,mQueue,context);
+    }
+
+    @OnClick(R.id.listFriendsButton)
+    void listFriends(){
+        YoUtils.listFriends(url,api_token,mQueue,context);
+    }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,8 +72,11 @@ public class MainActivity extends Activity {
         ButterKnife.inject(this);
 
         context = getApplication();
+        url = "http://OpenYo.nna774.net";
+        api_token = getString(R.string.yo_api_token);
         gcm = GoogleCloudMessaging.getInstance(this);
         registerInBackground();
+
     }
 
 
