@@ -2,6 +2,7 @@ package com.example.yoshitake.openyoapplication;
 
 import android.app.Activity;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -42,6 +43,10 @@ public class MainActivity extends Activity {
 
     @InjectView(R.id.toUsername)
     EditText toUsername;
+    @InjectView(R.id.username)
+    EditText userName;
+    @InjectView(R.id.password)
+    EditText password;
 
     @OnClick(R.id.sendYoButton)
     void sendYo(){
@@ -63,8 +68,10 @@ public class MainActivity extends Activity {
         YoUtils.listFriends(url,api_token,mQueue,context);
     }
 
-
-
+    @OnClick(R.id.createUserButton)
+    void createUser(){
+        YoUtils.createUser(url,api_token,mQueue,context,userName.getText().toString(),password.getText().toString());
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,10 +79,11 @@ public class MainActivity extends Activity {
         ButterKnife.inject(this);
 
         context = getApplication();
-        url = "http://OpenYo.nna774.net";
+        url = "https://OpenYo.nna774.net";
         api_token = getString(R.string.yo_api_token);
+        mQueue = Volley.newRequestQueue(this);
         gcm = GoogleCloudMessaging.getInstance(this);
-        registerInBackground();
+        //YoUtils.registerInBackground();
 
     }
 
@@ -99,7 +107,7 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void registerInBackground() {
+    /*private void registerInBackground() {
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -123,5 +131,5 @@ public class MainActivity extends Activity {
             protected void onPostExecute(String msg) {
             }
         }.execute(null, null, null);
-    }
+    }*/
 }

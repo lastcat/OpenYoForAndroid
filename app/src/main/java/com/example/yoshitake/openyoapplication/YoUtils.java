@@ -2,6 +2,8 @@ package com.example.yoshitake.openyoapplication;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -12,9 +14,11 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +29,6 @@ public class YoUtils {
     public static void sendYo(String endpointUrl, String api_token,String to,RequestQueue mQueue,final Context context){
         String parameters = "?api_ver=0.1&api_token="+api_token+"&username=";
         String requestUrl = endpointUrl+"/yo/" + parameters + to;
-        mQueue = Volley.newRequestQueue(context);
         mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
                 new Response.Listener<String>() {
                     @Override
@@ -47,7 +50,6 @@ public class YoUtils {
         //TODO:url(エンドポイント)はユーザー指定にする。
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endpointUrl + "/yoall/"+parameters;
-        mQueue = Volley.newRequestQueue(context);
         mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
                 new Response.Listener<String>() {
                     @Override
@@ -69,7 +71,6 @@ public class YoUtils {
         //TODO:url(エンドポイント)はユーザー指定にする。
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endpointUrl +"/friends_count/"+ parameters;
-        mQueue = Volley.newRequestQueue(context);
         mQueue.add(new StringRequest(Request.Method.GET, requestUrl,
                 new Response.Listener<String>() {
                     @Override
@@ -91,7 +92,6 @@ public class YoUtils {
         //TODO:url(エンドポイント)はユーザー指定にする。
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endpointUrl+"/list_friends/" + parameters;
-        mQueue = Volley.newRequestQueue(context);
         mQueue.add(new StringRequest(Request.Method.GET, requestUrl,
                 new Response.Listener<String>() {
                     @Override
@@ -109,9 +109,55 @@ public class YoUtils {
         mQueue.start();
     }
 
-    void forPushNotification(){
-        /*String url = "https://android.googleapis.com/gcm/send";
-        final String api_key = getString(R.string.api_key);
+    public static void createUser(String endpointUrl, String api_token,RequestQueue mQueue,final Context context,String username, String password){
+        String parameters = "?api_ver=0.1&api_token="+api_token;
+        String requestUrl = endpointUrl + "/config/create_user/"+parameters + "&username="+username+"&password="+password;
+        //String requestUrl = endpointUrl + "/config/create_user/"+ parameters + "&username=testcat";
+        mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // JSONObjectのパース、List、Viewへの追加等
+                        Toast.makeText(context,response,Toast.LENGTH_LONG).show();
+                    }
+                },
+
+                new Response.ErrorListener() {
+                    @Override public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                    }
+                }));
+        mQueue.start();
+    }
+    //TODO:regId登録関数。本体からのパラメータ調整。
+    /*public static void registerInBackground(final GoogleCloudMessaging gcm, final Context context) {
+        new AsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackground(Void... params) {
+                String msg = "";
+                try {
+                    if (gcm == null) {
+                        gcm = GoogleCloudMessaging.getInstance(context);
+                    }
+                    String regid = gcm.register(getString(R.string.project_number));
+                    msg = "Device registered, registration ID=" + regid;
+                    regId = regid;
+
+                } catch (IOException ex) {
+                    msg = "Error :" + ex.getMessage();
+                }
+                Log.d("meg", msg);
+                return msg;
+            }
+
+            @Override
+            protected void onPostExecute(String msg) {
+            }
+        }.execute(null, null, null);
+    }*/
+    /*public static void forPushNotification(final String api_key,String regId){
+        String url = "https://android.googleapis.com/gcm/send";
+        //final String api_key = getString(R.string.api_key);
 
         JSONObject sendData = new JSONObject();
         try {
@@ -143,5 +189,5 @@ public class YoUtils {
         mQueue = Volley.newRequestQueue(this);
 
         mQueue.start();
-    */}
+    }*/
 }
