@@ -1,8 +1,11 @@
 package com.example.yoshitake.openyoapplication;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -32,14 +35,14 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 import butterknife.OnClick;
 
-
+//TODO:リストから一つのエンドポイントを選ぶと、アカウント切り替えが右上のnavbarでできるようにする。エンドポイントも右上でとりえあえず設定
 public class MainActivity extends Activity {
     private RequestQueue mQueue;
     private GoogleCloudMessaging gcm;
     private Context context;
-    String regId;
     String url;
     String api_token;
+    YoUtils yoClient;
 
     @InjectView(R.id.toUsername)
     EditText toUsername;
@@ -50,28 +53,32 @@ public class MainActivity extends Activity {
 
     @OnClick(R.id.sendYoButton)
     void sendYo(){
-        YoUtils.sendYo(url,api_token,toUsername.getText().toString(),mQueue,context);
+        yoClient.sendYo(toUsername.getText().toString(),mQueue,context);
     }
 
     @OnClick(R.id.sendAllButton)
     void sendAll(){
-        YoUtils.sendYoAll(url,api_token,mQueue,context);
+        yoClient.sendYoAll(mQueue,context);
     }
 
     @OnClick(R.id.countTotalFriendsButton)
     void countTotalFriends(){
-            YoUtils.countTotalFriends(url,api_token,mQueue,context);
+        yoClient.countTotalFriends(mQueue,context);
     }
 
     @OnClick(R.id.listFriendsButton)
     void listFriends(){
-        YoUtils.listFriends(url,api_token,mQueue,context);
+        yoClient.listFriends(mQueue,context);
     }
 
     @OnClick(R.id.createUserButton)
     void createUser(){
-        YoUtils.createUser(url,api_token,mQueue,context,userName.getText().toString(),password.getText().toString());
+        //CreateUserはAPIを叩いて、userをcreateするとともに、yoClientをその新規作成したアカウントにする。
+        yoClient.setProjectNumber(this.getString(R.string.project_number));
+        yoClient.createUser(userName.getText().toString(),password.getText().toString(),mQueue,context);
+        //TODO:DB登録関数 この時点のyoClientからすべての情報は取れる。
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,12 +86,17 @@ public class MainActivity extends Activity {
         ButterKnife.inject(this);
 
         context = getApplication();
-        url = "https://OpenYo.nna774.net";
-        api_token = getString(R.string.yo_api_token);
+        //url = "https://OpenYo.nna774.net";
+        yoClient = new YoUtils();
         mQueue = Volley.newRequestQueue(this);
-        gcm = GoogleCloudMessaging.getInstance(this);
-        //YoUtils.registerInBackground();
 
+
+        //実際には選択したItemの情報で初期化する
+        //これはcreateアカウントしか使わない
+        //そもそもContext渡してるならこれいらないのでは
+        //yoClient.setGcm(GoogleCloudMessaging.getInstance(this));
+        //これだけが今は必要か。
+        yoClient.setEndPointUrl("https://OpenYo.nna774.net");
     }
 
 
@@ -107,29 +119,64 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    /*private void registerInBackground() {
-        new AsyncTask<Void, Void, String>() {
-            @Override
-            protected String doInBackground(Void... params) {
-                String msg = "";
-                try {
-                    if (gcm == null) {
-                        gcm = GoogleCloudMessaging.getInstance(context);
-                    }
-                    String regid = gcm.register(getString(R.string.project_number));
-                    msg = "Device registered, registration ID=" + regid;
-                    regId = regid;
+//このアプリケーションではエンドポイント、アカウント情報をDBで管理する。
+    static final String DB = "account.db";
+    static final int DB_VERSION = 1;
+    static final String CREATE_TABLE = "create table account_table ( _id integer primary key autoincrement not null, " +
+            "endpoint text not null," +
+            "username text not null," +
+            "api_token text UNIQUE not null );"+
+            "create table endpoint_table ( _id integer primary key autoincrement not null," +
+            "endpoint text  UNIQUE not null);";
 
-                } catch (IOException ex) {
-                    msg = "Error :" + ex.getMessage();
-                }
-                Log.d("meg",msg);
-                return msg;
-            }
+    static final String DROP_TABLE = "drop table mytable;";
 
-            @Override
-            protected void onPostExecute(String msg) {
+    private static class AccountDBHelper extends SQLiteOpenHelper {
+        public AccountDBHelper(Context context) {
+            super(context, DB, null, DB_VERSION);
+        }
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL(CREATE_TABLE);
+        }
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            db.execSQL(DROP_TABLE);
+            onCreate(db);
+        }
+        public void insertNewEndpointt(SQLiteDatabase db,String endpointUrl){
+            ContentValues val = new ContentValues();
+            val.put("endpoint",endpointUrl);
+            try {
+                db.insert("endpoint_table", null, val);
             }
-        }.execute(null, null, null);
-    }*/
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        public void insertNewAccount(SQLiteDatabase db,String endPointUrl,String username,String api_token){
+            ContentValues val = new ContentValues();
+            val.put("endpoint",endPointUrl);
+            val.put("username",username);
+            val.put("api_token",api_token);
+            try {
+                db.insert("account_table",null,val);
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        //endpointの一覧を返す。
+        //続き書かないと。
+        public void selectAllEndpoint(SQLiteDatabase db){
+            Cursor cursor = null;
+            //これでいいの
+            cursor = db.query("endpoint_table",null,null,null,null,null,null);
+            String endpointList = "";
+
+        }
+        //endpointを指定するとusernameとapi_tokenの組を返す関数が必要?（見えるのはusernameだけでよい）
+        //リスト作るのにつかう。
+
+
+    }
 }

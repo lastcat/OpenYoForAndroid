@@ -27,6 +27,7 @@ public class GcmIntentService extends IntentService {
         String messageType = gcm.getMessageType(intent);
 
         if (!extras.isEmpty()) {
+            Log.d("OUOUO","KITAKITAKITA");
             if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
                 Log.d(TAG,"messageType: " + messageType + ",body:" + extras.toString());
             } else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
@@ -37,6 +38,7 @@ public class GcmIntentService extends IntentService {
                     @Override
                     public void run() {
                         Toast.makeText(getApplicationContext(), "Toast Message from IntentService", Toast.LENGTH_LONG).show();
+
                     }
                 });
             }
