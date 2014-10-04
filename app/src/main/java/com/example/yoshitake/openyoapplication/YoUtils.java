@@ -3,6 +3,7 @@ package com.example.yoshitake.openyoapplication;
 import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -16,23 +17,31 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
+import javax.security.auth.callback.Callback;
 
 /**
  * Created by Yoshitake on 2014/09/25.
  */
 public class YoUtils {
     //TODO:各動作後のToastをちゃんとする（ステータスコードとかでエラーメッセージわける）
-    //TODO:CountTotalFrineds,listFriendsをどうするか考える。
     private String endPointUrl;
     private String username;
     private  String api_token;
     private GoogleCloudMessaging gcm;
     private String  projectNumber;
+    public int numberOfFriends;
+    private ArrayList<String> friendsList;
 
     public void setEndPointUrl(String endPointUrl){
         this.endPointUrl = endPointUrl;
@@ -41,13 +50,26 @@ public class YoUtils {
         this.username = userName;
     }
     public void setApi_token(String api_token){
+        Log.d("set!",api_token);
         this.api_token = api_token;
     }
     public void setProjectNumber(String projectNumber){
         this.projectNumber = projectNumber;
     }
+    public String getUserNmae(){return this.username;}
+    public String getApi_token(){return this.api_token;}
+    public String getEndPointUrl(){return this.endPointUrl;}
 
-    public void sendYo(String to ,RequestQueue mQueue,final Context context){
+    @Override
+    public String toString(){
+        return this.username;
+    }
+
+    public List<String> getFriendsList(){
+        return friendsList;
+    }
+
+    public void sendYo(final String to ,RequestQueue mQueue,final Context context){
         if(this.api_token==null||this.endPointUrl==null){
             Toast.makeText(context,"エンドポイントが指定されていない、またはアカウントが作成されていません。",Toast.LENGTH_LONG).show();
             return;
@@ -59,8 +81,7 @@ public class YoUtils {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        //すべてのresponseをjson対応にしないといけない
-                        Toast.makeText(context,response,Toast.LENGTH_LONG).show();
+                        Toast.makeText(context,"Send Yo to "+ to + "!",Toast.LENGTH_LONG).show();
                         Log.d("username", username);
                         Log.d("api_token",api_token);
                         Log.d("response:",response);
@@ -87,7 +108,7 @@ public class YoUtils {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Toast.makeText(context,response,Toast.LENGTH_LONG).show();
+                        Toast.makeText(context,"send Yo all!",Toast.LENGTH_LONG).show();
                         Log.d("response:",response);
                     }
                 },
@@ -101,18 +122,24 @@ public class YoUtils {
     }
 
     public void countTotalFriends(RequestQueue mQueue,final Context context){
+        final YoUtils yoClient = this;
         if(this.api_token==null||this.endPointUrl==null){
             Toast.makeText(context,"エンドポイントが指定されていない、またはアカウントが作成されていません。",Toast.LENGTH_LONG).show();
             return;
         }
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endPointUrl +"/friends_count/"+ parameters;
-        mQueue.add(new StringRequest(Request.Method.GET, requestUrl,
-                new Response.Listener<String>() {
+        mQueue.add(new JsonObjectRequest(Request.Method.GET, requestUrl,null,
+                new Response.Listener<JSONObject>() {
                     @Override
-                    public void onResponse(String response) {
-                        // JSONObjectのパース、List、Viewへの追加等
-                        Toast.makeText(context, response, Toast.LENGTH_LONG).show();
+                    public void onResponse(JSONObject response) {
+                        //Toast.makeText(context, response, Toast.LENGTH_LONG).show();
+                        try {
+                             yoClient.numberOfFriends = Integer.parseInt(response.getString("result"));
+                        }
+                        catch (Exception e){
+                            e.printStackTrace();
+                        }
                     }
                 },
 
@@ -131,12 +158,20 @@ public class YoUtils {
         }
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endPointUrl+"/list_friends/" + parameters;
-        mQueue.add(new StringRequest(Request.Method.GET, requestUrl,
-                new Response.Listener<String>() {
+        mQueue.add(new JsonObjectRequest(Request.Method.GET, requestUrl,null,
+                new Response.Listener<JSONObject>() {
                     @Override
-                    public void onResponse(String response) {
-                        // JSONObjectのパース、List、Viewへの追加等
-                        Toast.makeText(context,response,Toast.LENGTH_LONG).show();
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray friends = response.getJSONArray("result");
+                            for(int i = 0;i < friends.length();i++){
+                                friendsList.add(friends.getString(i));
+                            }
+                        }
+                        catch(Exception e){
+                            e.printStackTrace();
+                        }
+                        //Toast.makeText(context,response,Toast.LENGTH_LONG).show();
                     }
                 },
 
@@ -149,34 +184,34 @@ public class YoUtils {
     }
 
     public void createUser(final String username, final String password, final RequestQueue mQueue,final Context context){
-        final YoUtils yoClient = this;
+
         String parameters = "?api_ver=0.1";
         final String requestUrl = this.endPointUrl + "/config/create_user/"+ parameters + "&username="+username+"&password="+password;
-        mQueue.add(new JsonObjectRequest(Request.Method.POST, requestUrl,null,
+        mQueue.add(new JsonObjectRequest(Request.Method.POST, requestUrl, null,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
                         String result = "";
                         try {
                             result = response.getString("result");
-                        }
-                        catch (Exception e){
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        Log.d("api_token!",result + "end");
-                        yoClient.setApi_token(result);
-                        yoClient.setUsername(username);
-                        yoClient.registerID(password,mQueue,context);
+                        Log.d("api_token: ", result);
+                        Toast.makeText(context,"Created User Account. if you want to save this account, push save Button",Toast.LENGTH_LONG).show();
+                        YoUtils.this.setApi_token(result);
+                        YoUtils.this.setUsername(username);
+                        YoUtils.this.registerID(password, mQueue, context);
                     }
                 },
 
                 new Response.ErrorListener() {
-                    @Override public void onErrorResponse(VolleyError error) {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
                         error.printStackTrace();
                     }
                 }));
         mQueue.start();
-
     }
 
     private void registerID(final String password,final RequestQueue mQueue,final Context context) {
@@ -186,7 +221,6 @@ public class YoUtils {
                 String msg = "";
                 try {
                     if (gcm == null) {
-                        //gcm、ここでしか使わないからインスタンスが持ってるのやっぱり微妙な気がするなぁ。ここで生成してそれでいいのでは。
                         gcm = GoogleCloudMessaging.getInstance(context);
                     }
                     String regid = gcm.register(projectNumber);
@@ -194,7 +228,6 @@ public class YoUtils {
                 } catch (IOException ex) {
                     msg = "Error :" + ex.getMessage();
                 }
-                //log.dの何かがおかしい。
                 Log.d("meg", msg);
                 return msg;
             }
@@ -223,11 +256,5 @@ public class YoUtils {
                 }));
         mQueue.start();
     }
-    //DB設計……エンドポイント,username,apitokenのテーブルでいいと考える。
-    //エンドポイント選択時には重複を除いたエンドポイントリストを出力し、そのあと選択されたエンドポイントで検索かけてヒットしたユーザーを選択させる
-
-    //残り重複なしのエンドポイントのリストを返す関数と、選択されたエンドポイントに対応するusernameのリストを返す関数が必要
-    //それが書けたら右上のセッティングボタンと紐づける
-    //現在どのエンドポイントの何のアカウントなのかは常に表示しておくと良さそう
 
 }

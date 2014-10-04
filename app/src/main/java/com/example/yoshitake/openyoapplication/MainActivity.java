@@ -9,9 +9,16 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,21 +35,27 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import butterknife.OnClick;
 
-//TODO:リストから一つのエンドポイントを選ぶと、アカウント切り替えが右上のnavbarでできるようにする。エンドポイントも右上でとりえあえず設定
+//TODO:起動時に自動的エンドポイント,アカウントがセットされてしまうのをなんとかしたい
+//TODO:アカウントのCRUDアクションを整えるべき？
+//TODO:そもそもUIがクソ
 public class MainActivity extends Activity {
     private RequestQueue mQueue;
     private GoogleCloudMessaging gcm;
     private Context context;
-    String url;
-    String api_token;
+    private SQLiteDatabase db;
     YoUtils yoClient;
+    AccountDBHelper DBHelper;
+    ArrayAdapter<String> endPointAdapter;
+    YoAccountdapter accountAdapter;
 
     @InjectView(R.id.toUsername)
     EditText toUsername;
@@ -50,6 +63,12 @@ public class MainActivity extends Activity {
     EditText userName;
     @InjectView(R.id.password)
     EditText password;
+    @InjectView(R.id.endpointEditText)
+    EditText endpointEditText;
+    @InjectView(R.id.endpointSpinner)
+    Spinner endpointSpinner;
+    @InjectView(R.id.accountSpinner)
+    Spinner accountSpinner;
 
     @OnClick(R.id.sendYoButton)
     void sendYo(){
@@ -73,10 +92,32 @@ public class MainActivity extends Activity {
 
     @OnClick(R.id.createUserButton)
     void createUser(){
-        //CreateUserはAPIを叩いて、userをcreateするとともに、yoClientをその新規作成したアカウントにする。
         yoClient.setProjectNumber(this.getString(R.string.project_number));
         yoClient.createUser(userName.getText().toString(),password.getText().toString(),mQueue,context);
-        //TODO:DB登録関数 この時点のyoClientからすべての情報は取れる。
+    }
+    @OnClick(R.id.saveButton)
+    void saveAccount(){
+        if(yoClient.getUserNmae()!=null && yoClient.getApi_token()!=null){
+            DBHelper.insertNewAccount(db,yoClient);
+            accountAdapter.add(yoClient);
+            accountSpinner.setAdapter(accountAdapter);
+        }
+    }
+    @OnClick(R.id.saveEndpointButton)
+    void saveEndPoint(){
+        endPointAdapter.clear();
+        DBHelper.insertNewEndpointt(db,endpointEditText.getText().toString());
+        ArrayList<String> endpointList = DBHelper.selectAllEndpoint(db);
+        for(int i = 0;i < endpointList.size();i++){
+            endPointAdapter.add(endpointList.get(i));
+        }
+        endpointSpinner.setAdapter(endPointAdapter);
+        yoClient.setEndPointUrl(endpointEditText.getText().toString());
+
+        ArrayList<YoUtils> AccountList = DBHelper.selectAccounts(db,yoClient.getEndPointUrl());
+        accountAdapter = new YoAccountdapter(getApplicationContext(),R.layout.yo_account_item,AccountList);
+        accountSpinner.setAdapter(accountAdapter);
+        accountAdapter.setDropDownViewResource(R.layout.dropdown_item);
     }
 
     @Override
@@ -85,18 +126,52 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
+        //このあたり綺麗にしないといけない
         context = getApplication();
-        //url = "https://OpenYo.nna774.net";
         yoClient = new YoUtils();
+        yoClient.setEndPointUrl("");
         mQueue = Volley.newRequestQueue(this);
+        DBHelper = new AccountDBHelper(this);
+        db = DBHelper.getWritableDatabase();
+        endPointAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item);
+        ArrayList<String> endpointList = DBHelper.selectAllEndpoint(db);
+        for(int i = 0;i < endpointList.size();i++){
+            endPointAdapter.add(endpointList.get(i));
+        }
+        endpointSpinner.setAdapter(endPointAdapter);
+        endPointAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        endpointSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,int position, long id) {
+                Spinner spinner = (Spinner) parent;
+                String item = (String) spinner.getSelectedItem();
+                Toast.makeText(getApplicationContext(), "エンドポイントが"+item+"に設定されました", Toast.LENGTH_LONG).show();
+                yoClient.setEndPointUrl(item);
 
+                ArrayList<YoUtils> AccountList = DBHelper.selectAccounts(db,yoClient.getEndPointUrl());
+                accountAdapter = new YoAccountdapter(getApplicationContext(),R.layout.yo_account_item,AccountList);
+                accountSpinner.setAdapter(accountAdapter);
+                accountAdapter.setDropDownViewResource(R.layout.dropdown_item);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {
+            }
+        });
 
-        //実際には選択したItemの情報で初期化する
-        //これはcreateアカウントしか使わない
-        //そもそもContext渡してるならこれいらないのでは
-        //yoClient.setGcm(GoogleCloudMessaging.getInstance(this));
-        //これだけが今は必要か。
-        yoClient.setEndPointUrl("https://OpenYo.nna774.net");
+        accountSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                Spinner spinner = (Spinner) parent;
+                YoUtils item =  (YoUtils)spinner.getSelectedItem();
+                Toast.makeText(getApplicationContext(), item.getUserNmae(), Toast.LENGTH_LONG).show();
+                yoClient = item;
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {
+            }
+        });
+
     }
 
 
@@ -109,9 +184,6 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             return true;
@@ -122,10 +194,11 @@ public class MainActivity extends Activity {
 //このアプリケーションではエンドポイント、アカウント情報をDBで管理する。
     static final String DB = "account.db";
     static final int DB_VERSION = 1;
-    static final String CREATE_TABLE = "create table account_table ( _id integer primary key autoincrement not null, " +
+    static final String CREATE_ACCOUNT_TABLE = "create table account_table ( _id integer primary key autoincrement not null, " +
             "endpoint text not null," +
             "username text not null," +
-            "api_token text UNIQUE not null );"+
+            "api_token text UNIQUE not null );";
+    static final String CREATE_ENDPOINT_TABLE =
             "create table endpoint_table ( _id integer primary key autoincrement not null," +
             "endpoint text  UNIQUE not null);";
 
@@ -136,7 +209,8 @@ public class MainActivity extends Activity {
             super(context, DB, null, DB_VERSION);
         }
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL(CREATE_TABLE);
+            db.execSQL(CREATE_ACCOUNT_TABLE);
+            db.execSQL(CREATE_ENDPOINT_TABLE);
         }
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             db.execSQL(DROP_TABLE);
@@ -153,11 +227,13 @@ public class MainActivity extends Activity {
             }
         }
 
-        public void insertNewAccount(SQLiteDatabase db,String endPointUrl,String username,String api_token){
+        public void insertNewAccount(SQLiteDatabase db,YoUtils yoClient){
+            if(yoClient.getEndPointUrl()==null||yoClient.getUserNmae()==null||yoClient.getApi_token()==null)
+                return;
             ContentValues val = new ContentValues();
-            val.put("endpoint",endPointUrl);
-            val.put("username",username);
-            val.put("api_token",api_token);
+            val.put("endpoint",yoClient.getEndPointUrl());
+            val.put("username",yoClient.getUserNmae());
+            val.put("api_token",yoClient.getApi_token());
             try {
                 db.insert("account_table",null,val);
             }
@@ -165,18 +241,59 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
             }
         }
-        //endpointの一覧を返す。
-        //続き書かないと。
-        public void selectAllEndpoint(SQLiteDatabase db){
+
+        public ArrayList<String> selectAllEndpoint(SQLiteDatabase db){
             Cursor cursor = null;
-            //これでいいの
             cursor = db.query("endpoint_table",null,null,null,null,null,null);
-            String endpointList = "";
+            ArrayList<String> endpointList = new ArrayList<String>();
+            int index = cursor.getColumnIndex("endpoint");
+            while(cursor.moveToNext()){
+                String endpoint = cursor.getString(index);
+                endpointList.add(endpoint);
+            }
 
+            return endpointList;
         }
-        //endpointを指定するとusernameとapi_tokenの組を返す関数が必要?（見えるのはusernameだけでよい）
-        //リスト作るのにつかう。
 
+        public ArrayList<YoUtils> selectAccounts(SQLiteDatabase db,String endpoint){
+            Cursor cursor = null;
+            String[] strArg = {endpoint};
+            cursor = db.query("account_table",null,"endpoint=?",strArg,null,null,null);
+            //cursor = db.query("account_table",null,null,null,null,null,null);
+            ArrayList<YoUtils> accountList = new ArrayList<YoUtils>();
+            int endPointIndex = cursor.getColumnIndex("endpoint");
+            int nameIndex = cursor.getColumnIndex("username");
+            int tokenIndex = cursor.getColumnIndex("api_token");
 
+            while(cursor.moveToNext()){
+                YoUtils yoAccount = new YoUtils();
+                yoAccount.setEndPointUrl(cursor.getString(endPointIndex));
+                yoAccount.setUsername(cursor.getString(nameIndex));
+                yoAccount.setApi_token(cursor.getString(tokenIndex));
+                accountList.add(yoAccount);
+            }
+            return  accountList;
+        }
+    }
+
+    public class YoAccountdapter extends ArrayAdapter<YoUtils> {
+        private LayoutInflater layoutInflater_;
+
+        public YoAccountdapter(Context context, int textViewResourceId, List<YoUtils> objects) {
+            super(context, textViewResourceId, objects);
+            layoutInflater_ = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            YoUtils item = (YoUtils)getItem(position);
+            if (null == convertView) {
+                convertView = layoutInflater_.inflate(R.layout.yo_account_item, null);
+            }
+            TextView textView;
+            textView = (TextView)convertView.findViewById(R.id.yoAccountName);
+            textView.setText(item.getUserNmae());
+            return convertView;
+        }
     }
 }

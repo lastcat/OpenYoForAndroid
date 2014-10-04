@@ -1,5 +1,10 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ScrollView"
+    android:layout_height="fill_parent"
+    android:layout_width="fill_parent">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingLeft="@dimen/activity_horizontal_margin"
@@ -56,10 +61,30 @@
         android:text="Sign up"
         android:id="@+id/createUserButton"/>
     <Button
-        android:layout_height="wrap_content"
         android:layout_width="wrap_content"
-        android:text="Reg"
-        android:id="@+id/regButton"
-        ></Button>
+        android:layout_height="wrap_content"
+        android:text="Save Account"
+        android:id="@+id/saveButton"/>
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Endpoint URL"
+        android:id="@+id/endpointEditText"/>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save EndPoint"
+        android:id="@+id/saveEndpointButton"/>
+
+    <Spinner
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/endpointSpinner"
+        />
+    <Spinner
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/accountSpinner"/>
 
 </LinearLayout>
+</ScrollView>
