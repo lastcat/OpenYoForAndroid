@@ -34,7 +34,7 @@ import javax.security.auth.callback.Callback;
  * Created by Yoshitake on 2014/09/25.
  */
 public class YoUtils {
-    //TODO:各動作後のToastをちゃんとする（ステータスコードとかでエラーメッセージわける）
+    //TODO:各動作後のToastをちゃんとする→現状一応成否のみ。
     private String endPointUrl;
     private String username;
     private  String api_token;
@@ -77,14 +77,23 @@ public class YoUtils {
         //api_verに対応する必要はあるだろうか。
         String parameters = "?api_ver=0.1&api_token="+api_token+"&username=";
         String requestUrl = endPointUrl+"/yo/" + parameters + to;
-        mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
-                new Response.Listener<String>() {
+        mQueue.add(new JsonObjectRequest(Request.Method.POST, requestUrl,null,
+                new Response.Listener<JSONObject>() {
                     @Override
-                    public void onResponse(String response) {
-                        Toast.makeText(context,"Send Yo to "+ to + "!",Toast.LENGTH_LONG).show();
-                        Log.d("username", username);
-                        Log.d("api_token",api_token);
-                        Log.d("response:",response);
+                    public void onResponse(JSONObject response) {
+                        String responseCode = "";
+                        try{
+                            responseCode = response.getString("code");
+                        }
+                        catch (Exception e){
+                            e.printStackTrace();
+                        }
+                        if(responseCode=="200") {
+                            Toast.makeText(context, "Send Yo to " + to + "!", Toast.LENGTH_LONG).show();
+                        }
+                        else{
+                            Toast.makeText(context,"Yoの送信に失敗しました",Toast.LENGTH_LONG).show();
+                        }
                     }
                 },
 
@@ -104,12 +113,24 @@ public class YoUtils {
         }
         String parameters = "?api_ver=0.1&api_token="+api_token;
         String requestUrl = endPointUrl + "/yoall/"+parameters;
-        mQueue.add(new StringRequest(Request.Method.POST, requestUrl,
-                new Response.Listener<String>() {
+        mQueue.add(new JsonObjectRequest(Request.Method.POST, requestUrl,null,
+                new Response.Listener<JSONObject>() {
                     @Override
-                    public void onResponse(String response) {
-                        Toast.makeText(context,"send Yo all!",Toast.LENGTH_LONG).show();
-                        Log.d("response:",response);
+                    public void onResponse(JSONObject response) {
+                        String responseCode="";
+                        try {
+                            responseCode = response.getString("code");
+                        }
+                        catch(Exception e){
+                            e.printStackTrace();
+                        }
+                        if(responseCode == "200"){
+                            Toast.makeText(context, "send Yo all!", Toast.LENGTH_LONG).show();
+                        }
+                        else{
+                            Toast.makeText(context,"Yoに失敗しました",Toast.LENGTH_LONG).show();
+                        }
+                        //Log.d("response:",response);
                     }
                 },
 
@@ -120,7 +141,7 @@ public class YoUtils {
                 }));
         mQueue.start();
     }
-
+//現状未使用(ListFriendsのLength取ればいいと考えているため。)
     public void countTotalFriends(RequestQueue mQueue,final Context context){
         final YoUtils yoClient = this;
         if(this.api_token==null||this.endPointUrl==null){
@@ -162,10 +183,17 @@ public class YoUtils {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
+                        String resposeCode = "";
                         try {
                             JSONArray friends = response.getJSONArray("result");
-                            for(int i = 0;i < friends.length();i++){
-                                friendsList.add(friends.getString(i));
+                            resposeCode = response.getString("code");
+                            if(resposeCode=="200") {
+                                for (int i = 0; i < friends.length(); i++) {
+                                    friendsList.add(friends.getString(i));
+                                }
+                            }
+                            else{
+                                Toast.makeText(context,"Yoリストの取得に失敗しました",Toast.LENGTH_SHORT).show();
                             }
                         }
                         catch(Exception e){
@@ -192,16 +220,22 @@ public class YoUtils {
                     @Override
                     public void onResponse(JSONObject response) {
                         String result = "";
+                        String responseCode = "";
                         try {
                             result = response.getString("result");
+                            responseCode = response.getString("code");
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        Log.d("api_token: ", result);
-                        Toast.makeText(context,"Created User Account. if you want to save this account, push save Button",Toast.LENGTH_LONG).show();
-                        YoUtils.this.setApi_token(result);
-                        YoUtils.this.setUsername(username);
-                        YoUtils.this.registerID(password, mQueue, context);
+                        if(responseCode == "200") {
+                            Toast.makeText(context, "Created User Account. if you want to save this account, push save Button", Toast.LENGTH_LONG).show();
+                            YoUtils.this.setApi_token(result);
+                            YoUtils.this.setUsername(username);
+                            YoUtils.this.registerID(password, mQueue, context);
+                        }
+                        else{
+                            Toast.makeText(context,"アカウントの取得に失敗しました。",Toast.LENGTH_SHORT).show();
+                        }
                     }
                 },
 
