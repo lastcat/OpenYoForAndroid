@@ -227,7 +227,7 @@ public class YoUtils {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        if(responseCode == "200") {
+                        if(responseCode.equals("200")) {
                             Toast.makeText(context, "Created User Account. if you want to save this account, push save Button", Toast.LENGTH_LONG).show();
                             YoUtils.this.setApi_token(result);
                             YoUtils.this.setUsername(username);
