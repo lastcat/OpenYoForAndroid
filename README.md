@@ -3,12 +3,12 @@ OpenYoForAndroid
 
 OepnYoのandroidクライアントです。
 
-#概要
+# 概要
 [OpenYo](https://github.com/nna774/OpenYo)のAndroid用クライアント（saample）です。中のOpenYoクラスについてはライブラリ化したいと考思っているので、自作クライアントを作られる場合はそちらをご利用ください。
-#ビルド方法
+# ビルド方法
 submoduleでvolleyを使用をしているので、`git clone`して、modules/volley以下で`git submodule init`して`git submodule update`して下さい。
 
-#アプリの使い方
+# アプリの使い方
 最初に、まずエンドポイントを登録します。EndPointURLにエンドポイントのURLを入力してSave EndPointボタンをタッチしてください。
 
 次に指定したエンドポイントのOpenYoに対してSign upします。new user nameにユーザー名を、passwordにパスワードを入力してSign Upボタンをタッチしてください。
