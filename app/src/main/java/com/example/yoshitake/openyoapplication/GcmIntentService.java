@@ -13,6 +13,8 @@ import android.widget.Toast;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import android.os.Handler;
+
+import java.util.Date;
 import java.util.logging.LogRecord;
 
 /**
@@ -51,7 +53,9 @@ public class GcmIntentService extends IntentService {
                         n.setLatestEventInfo(getApplicationContext(), "OpenYo", extras.getString("message"), pi);
                         NotificationManager nm =
                                 (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-                        nm.notify(1,n);
+
+                        Date date = new Date();
+                        nm.notify((int)date.getTime(),n);
                     }
                 });
             }
