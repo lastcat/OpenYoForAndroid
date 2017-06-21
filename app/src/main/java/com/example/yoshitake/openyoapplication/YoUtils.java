@@ -88,7 +88,7 @@ public class YoUtils {
                         catch (Exception e){
                             e.printStackTrace();
                         }
-                        if(responseCode=="200") {
+                        if(responseCode.equals("200")) {
                             Toast.makeText(context, "Send Yo to " + to + "!", Toast.LENGTH_LONG).show();
                         }
                         else{
@@ -124,7 +124,7 @@ public class YoUtils {
                         catch(Exception e){
                             e.printStackTrace();
                         }
-                        if(responseCode == "200"){
+                        if(responseCode.equals("200")){
                             Toast.makeText(context, "send Yo all!", Toast.LENGTH_LONG).show();
                         }
                         else{
@@ -183,11 +183,11 @@ public class YoUtils {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        String resposeCode = "";
+                        String responseCode = "";
                         try {
                             JSONArray friends = response.getJSONArray("result");
-                            resposeCode = response.getString("code");
-                            if(resposeCode=="200") {
+                            responseCode = response.getString("code");
+                            if(responseCode.equals("200")) {
                                 for (int i = 0; i < friends.length(); i++) {
                                     friendsList.add(friends.getString(i));
                                 }
@@ -227,7 +227,7 @@ public class YoUtils {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        if(responseCode == "200") {
+                        if(responseCode.equals("200")) {
                             Toast.makeText(context, "Created User Account. if you want to save this account, push save Button", Toast.LENGTH_LONG).show();
                             YoUtils.this.setApi_token(result);
                             YoUtils.this.setUsername(username);
